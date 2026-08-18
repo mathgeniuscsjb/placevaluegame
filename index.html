@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Place Value Quest | Mr. Martínez's 4th Grade Math</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1B2A4A;
+    --navy-light:#2A3E63;
+    --paper:#F5F7FB;
+    --card:#FFFFFF;
+    --ink:#1B2A4A;
+    --ink-soft:#5A6B8C;
+    --ones:#2FAE66;
+    --tens:#3B82C4;
+    --hundreds:#8B5CF6;
+    --thousands:#E8604C;
+    --gold:#F2A93B;
+    --line:#E1E6F0;
+    --heart:#E8604C;
+    --radius:20px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 12% 8%, rgba(59,130,196,0.10), transparent 40%),
+      radial-gradient(circle at 88% 92%, rgba(242,169,59,0.12), transparent 42%),
+      var(--paper);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  h1,h2,h3,.display{font-family:'Fredoka',sans-serif; font-weight:600; margin:0;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  button{font-family:inherit; cursor:pointer;}
+
+  .app{
+    width:100%;
+    max-width:620px;
+  }
+
+  /* ============ TOP HUD ============ */
+  .hud{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+  .hearts{display:flex; gap:4px;}
+  .heart{
+    font-size:22px;
+    filter:drop-shadow(0 2px 2px rgba(0,0,0,0.12));
+    transition:transform .2s ease;
+  }
+  .heart.lost{opacity:0.18; filter:none;}
+  .heart.shake{animation:heartShake .4s ease;}
+  @keyframes heartShake{
+    0%,100%{transform:translateX(0) scale(1);}
+    25%{transform:translateX(-4px) scale(1.15);}
+    75%{transform:translateX(4px) scale(1.15);}
+  }
+  .score-pill{
+    background:var(--navy);
+    color:#fff;
+    border-radius:999px;
+    padding:8px 16px;
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:15px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .streak-pill{
+    background:#FFF3E4;
+    border:1px solid #F2D6AA;
+    color:#B87614;
+    border-radius:999px;
+    padding:7px 14px;
+    font-size:13px;
+    font-weight:600;
+    display:flex; align-items:center; gap:5px;
+    opacity:0;
+    transform:scale(0.8);
+    transition:all .25s ease;
+  }
+  .streak-pill.show{opacity:1; transform:scale(1);}
+
+  /* ============ PROGRESS DOTS ============ */
+  .progress-track{
+    display:flex;
+    gap:5px;
+    margin-bottom:22px;
+  }
+  .progress-dot{
+    flex:1;
+    height:7px;
+    border-radius:999px;
+    background:var(--line);
+    overflow:hidden;
+  }
+  .progress-dot .fill{
+    height:100%; width:0%;
+    background:var(--gold);
+    border-radius:999px;
+    transition:width .35s ease;
+  }
+  .progress-dot.done .fill{width:100%; background:var(--ones);}
+  .progress-dot.current .fill{width:100%; background:var(--gold);}
+  .progress-dot.wrong .fill{width:100%; background:var(--thousands);}
+
+  /* ============ CARD STAGE ============ */
+  .stage{
+    position:relative;
+    min-height:480px;
+  }
+  .card{
+    position:absolute;
+    inset:0;
+    background:var(--card);
+    border-radius:24px;
+    box-shadow:0 20px 46px -22px rgba(27,42,74,0.28);
+    padding:28px 26px 24px;
+    display:flex;
+    flex-direction:column;
+    transition:transform .4s cubic-bezier(.22,.9,.35,1), opacity .35s ease;
+  }
+  .card.enter{transform:translateX(60px); opacity:0;}
+  .card.leave{transform:translateX(-60px); opacity:0;}
+
+  .card-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+  .badge{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .diff-tag{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    padding:4px 10px;
+    border-radius:999px;
+    font-weight:700;
+  }
+  .diff-easy{background:#EAF6EE; color:#2E8A50;}
+  .diff-medium{background:#EAF1FB; color:#2F65A3;}
+  .diff-hard{background:#F7EEFC; color:#7238B8;}
+
+  .q-text{
+    font-family:'Fredoka',sans-serif;
+    font-weight:600;
+    font-size:19px;
+    line-height:1.4;
+    margin-bottom:20px;
+    flex-shrink:0;
+  }
+
+  .options{display:grid; gap:10px; flex:1;}
+  .options.grid2{grid-template-columns:1fr 1fr;}
+  .opt-btn{
+    border:2px solid var(--line);
+    background:#FBFCFE;
+    border-radius:14px;
+    padding:14px 16px;
+    font-size:15px;
+    font-weight:600;
+    color:var(--ink);
+    text-align:left;
+    transition:all .15s ease;
+  }
+  .opt-btn:hover:not(:disabled){border-color:var(--navy); transform:translateY(-1px);}
+  .opt-btn:disabled{cursor:default;}
+  .opt-btn.tf{text-align:center; font-size:16px;}
+  .opt-btn.correct{border-color:var(--ones); background:#EAF6EE; color:#1F7A41;}
+  .opt-btn.incorrect{border-color:var(--thousands); background:#FDEEEC; color:#B8402F;}
+  .opt-btn.dim{opacity:0.45;}
+
+  .fill-blank-row{display:flex; gap:10px; align-items:center; margin-top:6px;}
+  .fill-blank-row input{
+    flex:1;
+    padding:14px 16px;
+    border-radius:14px;
+    border:2px solid var(--line);
+    font-family:'JetBrains Mono',monospace;
+    font-size:18px;
+    text-align:center;
+  }
+  .fill-blank-row input:focus{outline:none; border-color:var(--navy);}
+  .submit-btn{
+    background:var(--navy);
+    color:#fff;
+    border:none;
+    border-radius:14px;
+    padding:14px 22px;
+    font-weight:700;
+    font-size:15px;
+  }
+  .submit-btn:hover{background:var(--navy-light);}
+  .submit-btn:disabled{opacity:0.4;}
+
+  .hint-row{margin-top:14px;}
+  .hint-btn{
+    background:none; border:none; color:var(--ink-soft);
+    font-size:13px; display:flex; align-items:center; gap:6px;
+    padding:0;
+  }
+  .hint-btn:hover{color:var(--gold);}
+  .hint-box{
+    display:none;
+    margin-top:10px;
+    background:#FFF7EA;
+    border:1px solid #F3DCA6;
+    border-radius:12px;
+    padding:10px 14px;
+    font-size:13.5px;
+    color:#7A5A22;
+  }
+  .hint-box.show{display:block;}
+
+  /* feedback */
+  .feedback{
+    margin-top:auto;
+    padding-top:16px;
+    display:none;
+  }
+  .feedback.show{display:block;}
+  .fb-banner{
+    border-radius:14px;
+    padding:13px 16px;
+    font-size:14px;
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .fb-banner.correct{background:#EAF6EE; color:#1F7A41; border:1px solid #BEE0C8;}
+  .fb-banner.incorrect{background:#FDEEEC; color:#B8402F; border:1px solid #F3C1B7;}
+  .fb-icon{font-size:20px; flex-shrink:0;}
+  .fb-points{
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    margin-left:auto;
+    flex-shrink:0;
+  }
+  .next-btn{
+    width:100%;
+    background:var(--gold);
+    color:var(--navy);
+    border:none;
+    border-radius:14px;
+    padding:15px;
+    font-weight:700;
+    font-size:15.5px;
+    font-family:'Fredoka',sans-serif;
+  }
+  .next-btn:hover{filter:brightness(0.95);}
+
+  /* ============ START / END SCREENS ============ */
+  .panel{
+    background:var(--card);
+    border-radius:24px;
+    box-shadow:0 20px 46px -22px rgba(27,42,74,0.28);
+    padding:38px 30px;
+    text-align:center;
+  }
+  .owl-big{font-size:56px; margin-bottom:6px;}
+  .panel h1{font-size:26px; margin-bottom:10px;}
+  .panel p.sub{color:var(--ink-soft); font-size:15px; max-width:420px; margin:0 auto 22px;}
+  .rules{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin-bottom:26px;
+  }
+  .rule-card{
+    background:#F7F9FC;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px 8px;
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+  .rule-card .rule-icon{font-size:22px; display:block; margin-bottom:6px;}
+  .rule-card strong{display:block; color:var(--ink); font-size:13.5px; margin-bottom:2px;}
+  .cta-btn{
+    background:var(--navy);
+    color:#fff;
+    border:none;
+    border-radius:999px;
+    padding:15px 34px;
+    font-family:'Fredoka',sans-serif;
+    font-weight:600;
+    font-size:16px;
+  }
+  .cta-btn:hover{background:var(--navy-light);}
+
+  .trophy{font-size:64px; margin-bottom:8px;}
+  .stars{font-size:30px; margin-bottom:14px; letter-spacing:4px;}
+  .stat-row{
+    display:flex;
+    justify-content:center;
+    gap:14px;
+    margin:20px 0 26px;
+    flex-wrap:wrap;
+  }
+  .stat-box{
+    background:#F7F9FC;
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:14px 20px;
+    min-width:100px;
+  }
+  .stat-box .num{font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; color:var(--navy);}
+  .stat-box .lbl{font-size:11.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; margin-top:2px;}
+
+  .badge-earned{
+    display:inline-block;
+    background:linear-gradient(135deg,var(--gold),#F7C465);
+    color:var(--navy);
+    padding:9px 18px;
+    border-radius:999px;
+    font-family:'Fredoka',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    margin-bottom:20px;
+  }
+
+  .hidden{display:none !important;}
+
+  /* confetti */
+  .confetti-piece{
+    position:fixed;
+    top:-10px;
+    width:8px; height:14px;
+    opacity:0.9;
+    z-index:500;
+    pointer-events:none;
+    animation:confettiFall linear forwards;
+  }
+  @keyframes confettiFall{
+    to{ transform:translateY(110vh) rotate(540deg); opacity:0; }
+  }
+
+  @media (max-width:480px){
+    .rules{grid-template-columns:1fr;}
+    .options.grid2{grid-template-columns:1fr;}
+    .panel{padding:28px 18px;}
+    .stage{min-height:520px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ START SCREEN ============ -->
+  <div class="panel" id="startScreen">
+    <div class="owl-big">🦉</div>
+    <div class="mono" style="font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:8px;">Mr. Martínez's 4th Grade Math</div>
+    <h1>Place Value Quest</h1>
+    <p class="sub">Sabio the owl needs your help testing the 10-to-1 pattern! Answer 15 challenges, earn points, and reach the goal to become a Place Value Champion.</p>
+    <div class="rules">
+      <div class="rule-card"><span class="rule-icon">🎯</span><strong>15 Challenges</strong>True/False, multiple choice &amp; fill-in-the-blank</div>
+      <div class="rule-card"><span class="rule-icon">❤️</span><strong>3 Lives</strong>Lose one for each wrong answer</div>
+      <div class="rule-card"><span class="rule-icon">🏆</span><strong>Goal: 200 pts</strong>No timer — go at your own pace</div>
+    </div>
+    <button class="cta-btn" id="startBtn">Start the Quest</button>
+  </div>
+
+  <!-- ============ GAME SCREEN ============ -->
+  <div id="gameScreen" class="hidden">
+    <div class="hud">
+      <div class="hearts" id="hearts"></div>
+      <div class="streak-pill" id="streakPill">🔥 <span id="streakCount">0</span> streak</div>
+      <div class="score-pill">⭐ <span id="scoreDisplay">0</span> / 200</div>
+    </div>
+    <div class="progress-track" id="progressTrack"></div>
+    <div class="stage" id="stage"></div>
+  </div>
+
+  <!-- ============ VICTORY SCREEN ============ -->
+  <div class="panel hidden" id="victoryScreen">
+    <div class="trophy">🏆</div>
+    <h1>Quest Complete!</h1>
+    <div class="stars" id="victoryStars"></div>
+    <div class="badge-earned" id="victoryBadge">Place Value Champion</div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="num" id="finalScore">0</div><div class="lbl">Points</div></div>
+      <div class="stat-box"><div class="num" id="finalAccuracy">0%</div><div class="lbl">Accuracy</div></div>
+      <div class="stat-box"><div class="num" id="finalHearts">0</div><div class="lbl">Lives Left</div></div>
+    </div>
+    <p class="sub" id="victoryMessage">You mastered the 10-to-1 relationship. Sabio is so proud!</p>
+    <button class="cta-btn" id="playAgainBtn1">Play Again</button>
+  </div>
+
+  <!-- ============ GAME OVER SCREEN ============ -->
+  <div class="panel hidden" id="overScreen">
+    <div class="trophy">🦉</div>
+    <h1>Out of Lives!</h1>
+    <p class="sub">Don't worry — even great mathematicians need more than one try. You made it to challenge <strong id="overChallengeNum">1</strong> of 15 with a score of <strong id="overScore">0</strong>. Review the place-value pattern and give it another shot!</p>
+    <div class="stat-row">
+      <div class="stat-box"><div class="num" id="overScore2">0</div><div class="lbl">Points</div></div>
+      <div class="stat-box"><div class="num" id="overAccuracy">0%</div><div class="lbl">Accuracy</div></div>
+    </div>
+    <button class="cta-btn" id="playAgainBtn2">Try Again</button>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   QUESTION DATA — 15 challenges, easy → hard
+   ========================================================= */
+const questions = [
+  {
+    type:'tf', diff:'easy', points:10,
+    q:"Maria says 30 is 10 times as much as 3. Is she correct?",
+    correct:true,
+    explain:"Correct! 3 × 10 = 30, so 30 is exactly 10 times as much as 3.",
+    hint:"Multiply 3 by 10 and see what you get."
+  },
+  {
+    type:'mc', diff:'easy', points:10,
+    q:"In the number 452, what is the value of the digit 5?",
+    options:["5","50","500","5,000"], correct:1,
+    explain:"The 5 is in the tens place, so its value is 50.",
+    hint:"Which place is the 5 sitting in — ones, tens, or hundreds?"
+  },
+  {
+    type:'tf', diff:'easy', points:10,
+    q:"Jamal says 600 is one-tenth of 60. Is he correct?",
+    correct:false,
+    explain:"Not quite — it's the other way around! 60 is one-tenth of 600 (600 ÷ 10 = 60). 600 is actually 10 times as much as 60.",
+    hint:"One-tenth means the SMALLER number. Which number here is smaller?"
+  },
+  {
+    type:'mc', diff:'easy', points:10,
+    q:"Which number is 10 times as much as 8?",
+    options:["18","80","800","8"], correct:1,
+    explain:"8 × 10 = 80.",
+    hint:"Multiply, don't add!"
+  },
+  {
+    type:'fill', diff:'easy', points:10,
+    q:"70 is 10 times ___.",
+    answer:"7",
+    explain:"70 ÷ 10 = 7, so 70 is 10 times 7.",
+    hint:"Divide 70 by 10."
+  },
+  {
+    type:'tf', diff:'medium', points:15,
+    q:"A 40-pound bag of dog food is 10 times as heavy as a 4-pound bag. Is that true?",
+    correct:true,
+    explain:"Yes! 4 × 10 = 40, so the bigger bag weighs exactly 10 times as much.",
+    hint:"Multiply 4 by 10."
+  },
+  {
+    type:'mc', diff:'medium', points:15,
+    q:"Which number is one-tenth of 500?",
+    options:["5","50","5,000","500"], correct:1,
+    explain:"500 ÷ 10 = 50.",
+    hint:"Divide 500 by 10."
+  },
+  {
+    type:'mc', diff:'medium', points:15,
+    q:"If a digit moves from the hundreds place to the tens place, its value becomes:",
+    options:["10 times greater","10 times smaller (one-tenth)","100 times greater","exactly the same"], correct:1,
+    explain:"Moving one place to the RIGHT always makes a digit's value one-tenth as much.",
+    hint:"Right means smaller. Left means bigger."
+  },
+  {
+    type:'tf', diff:'medium', points:15,
+    q:"Ravi says: 'The 3 in 3,000 has the same value as the 3 in 300.' Is he correct?",
+    correct:false,
+    explain:"No — the 3 in 3,000 is worth 3,000 (thousands place), while the 3 in 300 is only worth 300 (hundreds place). Same digit, very different value!",
+    hint:"Look at which place each 3 is sitting in."
+  },
+  {
+    type:'mc', diff:'medium', points:15,
+    q:"Coach Lee's team ran 90 meters. Coach Diaz's team ran one-tenth as far. How far did Coach Diaz's team run?",
+    options:["9 m","900 m","9,000 m","99 m"], correct:0,
+    explain:"90 ÷ 10 = 9 meters.",
+    hint:"'One-tenth as far' means divide by 10."
+  },
+  {
+    type:'fill', diff:'hard', points:20,
+    q:"Petra has 40 stickers. Jun has ten times as many. Jun has ___ stickers.",
+    answer:"400",
+    explain:"40 × 10 = 400.",
+    hint:"'Ten times as many' means multiply by 10."
+  },
+  {
+    type:'tf', diff:'hard', points:20,
+    q:"In the number 6,281, the value of the digit 2 is 20. Is that correct?",
+    correct:false,
+    explain:"No — the 2 in 6,281 is in the hundreds place, so its value is 200, not 20.",
+    hint:"Count the places from the right: ones, tens, hundreds… where does the 2 land?"
+  },
+  {
+    type:'mc', diff:'hard', points:20,
+    q:"Which pair of numbers shows a correct 10-to-1 relationship?",
+    options:["45 and 450","45 and 55","45 and 405","45 and 46"], correct:0,
+    explain:"450 ÷ 10 = 45, so 45 and 450 have a true 10-to-1 relationship.",
+    hint:"Try dividing each second number by 10 — does it equal 45?"
+  },
+  {
+    type:'fill', diff:'hard', points:20,
+    q:"The ones jar has $6. The tens jar has ten times as much. The hundreds jar has ten times the tens jar. How much is in the hundreds jar? $___",
+    answer:"600",
+    explain:"Ones jar: $6 → Tens jar: $6 × 10 = $60 → Hundreds jar: $60 × 10 = $600.",
+    hint:"Work step by step: first find the tens jar, then multiply that by 10 again."
+  },
+  {
+    type:'mc', diff:'hard', points:25,
+    q:"BOSS CHALLENGE: Petra has 80 pennies. Quentin has ten times as many as Petra, and Paula has one-tenth as many as Petra. How many pennies do Quentin and Paula have combined?",
+    options:["808","880","88","800"], correct:0,
+    explain:"Quentin: 80 × 10 = 800. Paula: 80 ÷ 10 = 8. Combined: 800 + 8 = 808.",
+    hint:"Find Quentin's pennies and Paula's pennies separately first, then add them together."
+  }
+];
+
+const GOAL = 200;
+const TOTAL_LIVES = 3;
+
+let state = {
+  index:0,
+  score:0,
+  lives:TOTAL_LIVES,
+  streak:0,
+  correctCount:0,
+  answered:false
+};
+
+/* =========================================================
+   ELEMENTS
+   ========================================================= */
+const startScreen = document.getElementById('startScreen');
+const gameScreen = document.getElementById('gameScreen');
+const victoryScreen = document.getElementById('victoryScreen');
+const overScreen = document.getElementById('overScreen');
+const stage = document.getElementById('stage');
+const heartsEl = document.getElementById('hearts');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const progressTrack = document.getElementById('progressTrack');
+const streakPill = document.getElementById('streakPill');
+const streakCount = document.getElementById('streakCount');
+
+function initProgress(){
+  progressTrack.innerHTML = questions.map((_,i) => `<div class="progress-dot" id="dot-${i}"><div class="fill"></div></div>`).join('');
+}
+
+function renderHearts(){
+  heartsEl.innerHTML = '';
+  for(let i=0;i<TOTAL_LIVES;i++){
+    const span = document.createElement('span');
+    span.className = 'heart' + (i >= state.lives ? ' lost' : '');
+    span.id = 'heart-' + i;
+    span.textContent = '❤️';
+    heartsEl.appendChild(span);
+  }
+}
+
+function updateScore(){
+  scoreDisplay.textContent = state.score;
+}
+
+function updateStreakPill(){
+  if(state.streak >= 2){
+    streakCount.textContent = state.streak;
+    streakPill.classList.add('show');
+  } else {
+    streakPill.classList.remove('show');
+  }
+}
+
+function diffLabel(d){
+  return d === 'easy' ? 'Easy' : d === 'medium' ? 'Medium' : 'Hard';
+}
+function diffClass(d){
+  return d === 'easy' ? 'diff-easy' : d === 'medium' ? 'diff-medium' : 'diff-hard';
+}
+
+/* =========================================================
+   RENDER A QUESTION CARD
+   ========================================================= */
+function renderCard(direction){
+  const item = questions[state.index];
+  state.answered = false;
+
+  const card = document.createElement('div');
+  card.className = 'card enter';
+
+  let bodyHtml = '';
+  if(item.type === 'tf'){
+    bodyHtml = `
+      <div class="options grid2">
+        <button class="opt-btn tf" data-val="true">✅ True</button>
+        <button class="opt-btn tf" data-val="false">❌ False</button>
+      </div>`;
+  } else if(item.type === 'mc'){
+    bodyHtml = `
+      <div class="options">
+        ${item.options.map((opt,i) => `<button class="opt-btn" data-val="${i}">${opt}</button>`).join('')}
+      </div>`;
+  } else if(item.type === 'fill'){
+    bodyHtml = `
+      <div class="fill-blank-row">
+        <input type="text" inputmode="numeric" id="fillInput" placeholder="Type your answer">
+        <button class="submit-btn" id="fillSubmit">Check</button>
+      </div>`;
+  }
+
+  card.innerHTML = `
+    <div class="card-top">
+      <span class="badge">Challenge ${state.index+1} of ${questions.length}</span>
+      <span class="diff-tag ${diffClass(item.diff)}">${diffLabel(item.diff)} · +${item.points}</span>
+    </div>
+    <div class="q-text">${item.q}</div>
+    ${bodyHtml}
+    <div class="hint-row">
+      <button class="hint-btn" id="hintBtn">🦉 Ask Sabio for a hint</button>
+      <div class="hint-box" id="hintBox">${item.hint}</div>
+    </div>
+    <div class="feedback" id="feedback">
+      <div class="fb-banner" id="fbBanner"></div>
+      <button class="next-btn" id="nextBtn">${state.index === questions.length-1 ? 'See My Results' : 'Next Challenge →'}</button>
+    </div>
+  `;
+
+  stage.innerHTML = '';
+  stage.appendChild(card);
+  requestAnimationFrame(() => { card.classList.remove('enter'); });
+
+  document.getElementById('hintBtn').onclick = () => {
+    document.getElementById('hintBox').classList.toggle('show');
+  };
+
+  if(item.type === 'tf' || item.type === 'mc'){
+    card.querySelectorAll('.opt-btn').forEach(btn => {
+      btn.onclick = () => handleAnswer(btn, item, card);
+    });
+  } else if(item.type === 'fill'){
+    const submit = () => handleFillAnswer(item, card);
+    document.getElementById('fillSubmit').onclick = submit;
+    document.getElementById('fillInput').addEventListener('keydown', e => { if(e.key === 'Enter') submit(); });
+  }
+
+  markDotCurrent();
+}
+
+function markDotCurrent(){
+  document.querySelectorAll('.progress-dot').forEach((d,i) => {
+    d.classList.remove('current','done','wrong');
+    if(i < state.index) d.classList.add('done');
+    if(i === state.index) d.classList.add('current');
+  });
+}
+
+/* =========================================================
+   ANSWER HANDLING
+   ========================================================= */
+function handleAnswer(btn, item, card){
+  if(state.answered) return;
+  state.answered = true;
+
+  let isCorrect;
+  if(item.type === 'tf'){
+    isCorrect = (btn.dataset.val === String(item.correct));
+  } else {
+    isCorrect = (parseInt(btn.dataset.val) === item.correct);
+  }
+
+  card.querySelectorAll('.opt-btn').forEach(b => {
+    b.disabled = true;
+    if(item.type === 'tf'){
+      if(b.dataset.val === String(item.correct)) b.classList.add('correct');
+      else if(b === btn) b.classList.add('incorrect');
+      else b.classList.add('dim');
+    } else {
+      if(parseInt(b.dataset.val) === item.correct) b.classList.add('correct');
+      else if(b === btn) b.classList.add('incorrect');
+      else b.classList.add('dim');
+    }
+  });
+
+  resolveAnswer(isCorrect, item, card);
+}
+
+function handleFillAnswer(item, card){
+  if(state.answered) return;
+  const input = document.getElementById('fillInput');
+  const val = input.value.trim().toLowerCase().replace(/[$,]/g,'');
+  if(val === '') { input.focus(); return; }
+  state.answered = true;
+
+  const expected = item.answer.toLowerCase().replace(/[$,]/g,'');
+  const isCorrect = (val === expected);
+
+  input.disabled = true;
+  document.getElementById('fillSubmit').disabled = true;
+  input.style.borderColor = isCorrect ? 'var(--ones)' : 'var(--thousands)';
+
+  resolveAnswer(isCorrect, item, card);
+}
+
+function resolveAnswer(isCorrect, item, card){
+  const dot = document.getElementById('dot-' + state.index);
+  const fbBanner = document.getElementById('fbBanner');
+  const feedback = document.getElementById('feedback');
+
+  if(isCorrect){
+    state.streak++;
+    state.correctCount++;
+    const streakBonus = state.streak >= 3 ? Math.min((state.streak-2)*2, 10) : 0;
+    const earned = item.points + streakBonus;
+    state.score += earned;
+    dot.classList.remove('current'); dot.classList.add('done');
+    fbBanner.className = 'fb-banner correct';
+    fbBanner.innerHTML = `<span class="fb-icon">🎉</span><span>${item.explain}</span><span class="fb-points">+${earned}</span>`;
+    spawnConfetti(card);
+  } else {
+    state.streak = 0;
+    state.lives--;
+    dot.classList.remove('current'); dot.classList.add('wrong');
+    fbBanner.className = 'fb-banner incorrect';
+    fbBanner.innerHTML = `<span class="fb-icon">💡</span><span>${item.explain}</span>`;
+    const heartEl = document.getElementById('heart-' + state.lives);
+    if(heartEl){
+      heartEl.classList.add('shake');
+      setTimeout(() => { heartEl.classList.add('lost'); }, 200);
+    }
+  }
+
+  updateScore();
+  updateStreakPill();
+  renderHearts_keepAnimation();
+  feedback.classList.add('show');
+
+  document.getElementById('nextBtn').onclick = () => goNext();
+
+  if(state.lives <= 0){
+    document.getElementById('nextBtn').textContent = 'See Results';
+    document.getElementById('nextBtn').onclick = () => showGameOver();
+  }
+}
+
+// re-render hearts without wiping the just-added shake animation abruptly
+function renderHearts_keepAnimation(){
+  for(let i=0;i<TOTAL_LIVES;i++){
+    const el = document.getElementById('heart-' + i);
+    if(el && i >= state.lives) el.classList.add('lost');
+  }
+}
+
+function goNext(){
+  if(state.lives <= 0){
+    showGameOver();
+    return;
+  }
+  if(state.index >= questions.length - 1){
+    showVictory();
+    return;
+  }
+  state.index++;
+  const oldCard = stage.querySelector('.card');
+  if(oldCard){
+    oldCard.classList.add('leave');
+    setTimeout(() => renderCard(), 200);
+  } else {
+    renderCard();
+  }
+}
+
+/* =========================================================
+   CONFETTI
+   ========================================================= */
+function spawnConfetti(anchor){
+  const colors = ['#F2A93B','#2FAE66','#3B82C4','#8B5CF6','#E8604C'];
+  const rect = anchor.getBoundingClientRect();
+  for(let i=0;i<16;i++){
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = (rect.left + Math.random()*rect.width) + 'px';
+    piece.style.background = colors[Math.floor(Math.random()*colors.length)];
+    piece.style.animationDuration = (1.4 + Math.random()*1) + 's';
+    piece.style.top = (rect.top - 10) + 'px';
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 2600);
+  }
+}
+
+/* =========================================================
+   END SCREENS
+   ========================================================= */
+function showVictory(){
+  gameScreen.classList.add('hidden');
+  victoryScreen.classList.remove('hidden');
+
+  document.getElementById('finalScore').textContent = state.score;
+  const accuracy = Math.round((state.correctCount / questions.length) * 100);
+  document.getElementById('finalAccuracy').textContent = accuracy + '%';
+  document.getElementById('finalHearts').textContent = state.lives;
+
+  let stars = 1;
+  if(state.score >= GOAL) stars = 3;
+  else if(state.score >= GOAL * 0.7) stars = 2;
+  document.getElementById('victoryStars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
+
+  const badgeEl = document.getElementById('victoryBadge');
+  const msgEl = document.getElementById('victoryMessage');
+  if(state.score >= GOAL){
+    badgeEl.textContent = '🏅 Place Value Champion';
+    msgEl.textContent = "You reached the goal and mastered the 10-to-1 relationship. Sabio is so proud!";
+  } else if(stars === 2){
+    badgeEl.textContent = '🥈 Place Value Explorer';
+    msgEl.textContent = "So close to the goal! You clearly understand the pattern — play again to reach 200 points.";
+  } else {
+    badgeEl.textContent = '🥉 Place Value Rookie';
+    msgEl.textContent = "Nice work finishing the quest! Review the tricky challenges and try again to boost your score.";
+  }
+}
+
+function showGameOver(){
+  gameScreen.classList.add('hidden');
+  overScreen.classList.remove('hidden');
+  document.getElementById('overChallengeNum').textContent = state.index + 1;
+  document.getElementById('overScore').textContent = state.score;
+  document.getElementById('overScore2').textContent = state.score;
+  const accuracy = Math.round((state.correctCount / (state.index+1)) * 100) || 0;
+  document.getElementById('overAccuracy').textContent = accuracy + '%';
+}
+
+function resetGame(){
+  state = { index:0, score:0, lives:TOTAL_LIVES, streak:0, correctCount:0, answered:false };
+  initProgress();
+  renderHearts();
+  updateScore();
+  updateStreakPill();
+  victoryScreen.classList.add('hidden');
+  overScreen.classList.add('hidden');
+  gameScreen.classList.remove('hidden');
+  renderCard();
+}
+
+document.getElementById('startBtn').onclick = () => {
+  startScreen.classList.add('hidden');
+  resetGame();
+};
+document.getElementById('playAgainBtn1').onclick = resetGame;
+document.getElementById('playAgainBtn2').onclick = resetGame;
+</script>
+
+</body>
+</html>
